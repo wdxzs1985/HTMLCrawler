@@ -14,6 +14,7 @@ import net.sf.json.JSONObject;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -61,9 +62,8 @@ public class Application implements CommandLineRunner {
 
     @Override
     public void run(String... arg0) throws Exception {
-        String html = this.getHtml();
-        this.parseHtml(html);
-
+        this.parseHtml();
+        this.parseCsv();
     }
 
     private String getHtml() throws Exception {
@@ -78,12 +78,11 @@ public class Application implements CommandLineRunner {
         return html.replaceAll("\\r\\n[\\t\\s]*|\\r[\\t\\s]*|\\n[\\t\\s]*", "");
     }
 
-    private void parseHtml(String html) throws IOException {
+    private void parseHtml() throws Exception {
         List<String> lines = new ArrayList<String>();
+        String html = this.getHtml();
         this.parseTable(html, lines);
         this.outputCSV(lines);
-        // this.outputSortByName(lines);
-        // this.outputSortByPos(lines);
     }
 
     private void parseTable(String html, List<String> lines) {
@@ -91,11 +90,11 @@ public class Application implements CommandLineRunner {
         while (matcher.find()) {
             String alpha = matcher.group(1);
             String table = matcher.group(2);
-            this.parseRow(alpha, table, lines);
+            this.parseTableRow(alpha, table, lines);
         }
     }
 
-    private void parseRow(String alpha, String table, List<String> lines) {
+    private void parseTableRow(String alpha, String table, List<String> lines) {
         Matcher matcher = this.ITEM_PATTERN.matcher(table);
         while (matcher.find()) {
             String circleName = matcher.group(1);
@@ -117,43 +116,56 @@ public class Application implements CommandLineRunner {
         FileUtils.writeLines(new File(this.csvfile), lines);
     }
 
-    private void outputSortByName(List<JSONObject> lines) throws IOException {
+    private void parseCsv() throws IOException {
+        List<String> lines = FileUtils.readLines(new File(this.csvfile));
+        this.outputSortByName(lines);
+        this.outputSortByPos(lines);
+    }
+
+    private void outputSortByName(List<String> lines) throws IOException {
         String key = null;
         JSONObject data = new JSONObject();
-        for (JSONObject circle : lines) {
-            key = circle.getString("alpha");
+        JSONArray keymap = new JSONArray();
+        for (String circle : lines) {
+            String[] sa = StringUtils.splitPreserveAllTokens(circle, ",");
+            key = sa[0];
             JSONArray group = data.optJSONArray(key);
             if (group == null) {
                 group = new JSONArray();
+                keymap.add(key);
             }
             group.add(circle);
             data.put(key, group);
         }
+        data.put("keymap", keymap);
 
         FileUtils.write(new File(this.sortByName),
                         "var data = " + data.toString());
     }
 
-    private void outputSortByPos(List<JSONObject> lines) throws IOException {
+    private void outputSortByPos(List<String> lines) throws IOException {
 
-        Collections.sort(lines, new Comparator<JSONObject>() {
+        Collections.sort(lines, new Comparator<String>() {
 
             @Override
-            public int compare(JSONObject o1, JSONObject o2) {
-                String position11 = o1.getString("position1");
-                String position21 = o2.getString("position1");
+            public int compare(String o1, String o2) {
+                String[] s1 = StringUtils.splitPreserveAllTokens(o1, ",");
+                String[] s2 = StringUtils.splitPreserveAllTokens(o2, ",");
+
+                String position11 = s1[3];
+                String position21 = s2[3];
                 if (position11.charAt(0) != position21.charAt(0)) {
                     return position11.charAt(0) - position21.charAt(0);
                 }
 
-                String position12 = o1.getString("position2");
-                String position22 = o2.getString("position2");
+                String position12 = s1[4];
+                String position22 = s2[4];
                 if (Integer.parseInt(position12) != Integer.parseInt(position22)) {
                     return Integer.parseInt(position12) - Integer.parseInt(position22);
                 }
 
-                String position13 = o1.getString("position3");
-                String position23 = o2.getString("position3");
+                String position13 = s1[5];
+                String position23 = s2[5];
                 if (position13.charAt(0) != position23.charAt(0)) {
                     return position13.charAt(0) - position23.charAt(0);
                 }
@@ -164,15 +176,19 @@ public class Application implements CommandLineRunner {
 
         String key = null;
         JSONObject data = new JSONObject();
-        for (JSONObject circle : lines) {
-            key = circle.getString("position1");
+        JSONArray keymap = new JSONArray();
+        for (String circle : lines) {
+            String[] sa = StringUtils.splitPreserveAllTokens(circle, ",");
+            key = sa[3];
             JSONArray group = data.optJSONArray(key);
             if (group == null) {
                 group = new JSONArray();
+                keymap.add(key);
             }
             group.add(circle);
             data.put(key, group);
         }
+        data.put("keymap", keymap);
 
         FileUtils.write(new File(this.sortByPos),
                         "var data = " + data.toString());
