@@ -13,6 +13,7 @@ import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -104,8 +105,8 @@ public class Application implements CommandLineRunner {
             String position3 = matcher.group(5);
             lines.add(String.format("%s,%s,%s,%s,%s,%s,,",
                                     alpha,
-                                    circleName,
-                                    penName,
+                                    StringEscapeUtils.unescapeHtml4(circleName),
+                                    StringEscapeUtils.unescapeHtml4(penName),
                                     position1,
                                     position2,
                                     position3));
