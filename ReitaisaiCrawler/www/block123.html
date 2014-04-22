@@ -49,7 +49,7 @@
             {% if (o.circle[i].web) { %}
                 <a href="{%=o.circle[i].web%}" target="_blank" class="btn btn-primary" role="button">V</a> 
             {% } else { %}
-                <a href="{%=o.circle[i].name%}" target="_blank" class="btn btn-default" role="button">G</a>
+                <a href="https://www.google.com/search?q={%=o.circle[i].name%}" target="_blank" class="btn btn-default" role="button">G</a>
             {% } %}
             {% if (o.circle[i].pixiv) { %}
                 <a href="http://www.pixiv.net/member.php?id={%=o.circle[i].pixiv%}" target="_blank" class="btn btn-info" role="button">P</a> 
