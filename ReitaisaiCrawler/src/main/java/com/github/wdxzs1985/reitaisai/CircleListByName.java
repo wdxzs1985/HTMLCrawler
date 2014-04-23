@@ -63,7 +63,7 @@ public class CircleListByName implements CommandLineRunner {
         } else {
             html = FileUtils.readFileToString(file);
         }
-        return html.replaceAll("\\r\\n[\\t\\s]*|\\r[\\t\\s]*|\\n[\\t\\s]*", "");
+        return Application.replaceReturn(html);
     }
 
     private void parseHtml() throws Exception {

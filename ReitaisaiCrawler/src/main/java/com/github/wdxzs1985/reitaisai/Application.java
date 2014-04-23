@@ -37,4 +37,8 @@ public class Application {
         splited.add(strB.toString());
         return splited.toArray(new String[] {});
     }
+
+    public static final String replaceReturn(String text) {
+        return text.replaceAll("\\r\\n[\\t\\s]*|\\r[\\t\\s]*|\\n[\\t\\s]*", "");
+    }
 }
