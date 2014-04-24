@@ -18,10 +18,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 @Component
-public class CircleMapData implements CommandLineRunner {
-
-    @Value("${CircleListByName.csvfile:circlename.csv}")
-    private String circlenameCsv;
+public class CirclePixivData implements CommandLineRunner {
 
     @Value("${CircleListByBlock123.csvfile:block123.csv}")
     private String block123Csv;
@@ -29,17 +26,14 @@ public class CircleMapData implements CommandLineRunner {
     @Value("${CircleListByBlock456.csvfile:block456.csv}")
     private String block456Csv;
 
-    @Value("${CircleMapData.csvfile:circlemap.csv}")
+    @Value("${CirclePixivData.csvfile:pixiv.csv}")
     private String csvfile;
 
-    @Value("${CircleMapData.jsonfile:circlemap.json}")
+    @Value("${CirclePixivData.jsonfile:pixiv.json}")
     private String jsonfile;
 
-    @Value("${CircleMapData.csv:false}")
+    @Value("${CirclePixivData.csv:false}")
     private boolean csv;
-
-    @Value("${CircleMapData.pixiv:false}")
-    private boolean pixiv;
 
     private final Log log = LogFactory.getLog(this.getClass());
 
@@ -66,16 +60,11 @@ public class CircleMapData implements CommandLineRunner {
         for (String line : lines) {
             String[] sa = Application.splitCsv(line);
             String name = sa[1];
-            String web = sa[6];
             String pixivNo = sa[7];
-            String avatar = "";
-            if (StringUtils.isNotBlank(web) || StringUtils.isNotBlank(pixivNo)) {
-                if (this.pixiv && StringUtils.isNotBlank(pixivNo)) {
-                    avatar = this.findAvatar(pixivNo);
-                }
-                String newLine = String.format("\"%s\",\"%s\",\"%s\",\"%s\"",
+            if (StringUtils.isNotBlank(pixivNo)) {
+                String avatar = this.findAvatar(pixivNo);
+                String newLine = String.format("\"%s\",\"%s\",\"%s\"",
                                                name,
-                                               web,
                                                pixivNo,
                                                avatar);
                 merge.add(newLine);
@@ -111,24 +100,22 @@ public class CircleMapData implements CommandLineRunner {
 
     private void output() throws IOException {
         List<String> lines = FileUtils.readLines(new File(this.csvfile));
-        JSONObject circleMap = new JSONObject();
+        JSONObject pixivMap = new JSONObject();
         for (String line : lines) {
             String[] sa = Application.splitCsv(line);
             String name = sa[0];
-            String web = sa[1];
-            String pixiv = sa[2];
-            String avatar = sa[3];
+            String pixiv = sa[1];
+            String avatar = sa[2];
 
             JSONObject circle = new JSONObject();
             circle.put("name", name);
-            circle.put("web", web);
             circle.put("pixiv", pixiv);
             circle.put("avatar", avatar);
 
-            circleMap.put(name, circle);
+            pixivMap.put(name, circle);
         }
 
         FileUtils.write(new File(this.jsonfile),
-                        "var map = " + circleMap.toString());
+                        "var pixivData = " + pixivMap.toString());
     }
 }

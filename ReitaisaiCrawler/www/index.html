@@ -7,6 +7,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="bootstrap-3.1.1-dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="bootstrap-3.1.1-dist/css/bootstrap-theme.min.css">
+<link rel="stylesheet" type="text/css" href="fancybox/source/jquery.fancybox.css?v=2.1.5" media="screen" />
+<link rel="stylesheet" type="text/css" href="fancybox/source/helpers/jquery.fancybox-buttons.css?v=1.0.5" />
+<link rel="stylesheet" type="text/css" href="fancybox/source/helpers/jquery.fancybox-thumbs.css?v=1.0.7" />
 <style>
     body { padding-top: 70px;}
     h3 { height:2em; overflow: hidden; text-overflow: ellipsis;}
@@ -24,11 +27,11 @@
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a class="navbar-brand" href="circlename.html">例大祭11サークル</a>
+      <a class="navbar-brand" href="index.html">例大祭11サークル</a>
     </div>
     <div class="collapse navbar-collapse " id="bs-example-navbar-collapse-1">
       <ul class="nav navbar-nav">
-        <li class=""><a href="circlename.html">名前順</a></li>
+        <li class=""><a href="index.html">名前順</a></li>
         <li class=""><a href="block123.html">東１２３</a></li>
         <li class=""><a href="block456.html">東４５６</a></li>
         <li class="dropdown hidden-lg hidden-md hidden-sm">
@@ -49,8 +52,14 @@
 <script src="jquery/jquery-2.1.0.min.js"></script>
 <script src="bootstrap-3.1.1-dist/js/bootstrap.min.js"></script>
 <script src="js/tmpl.min.js"></script>
+<script type="text/javascript" src="fancybox/lib/jquery.mousewheel-3.0.6.pack.js"></script>
+<script type="text/javascript" src="fancybox/source/jquery.fancybox.js?v=2.1.5"></script>
+<script type="text/javascript" src="fancybox/source/helpers/jquery.fancybox-buttons.js?v=1.0.5"></script>
+<script type="text/javascript" src="fancybox/source/helpers/jquery.fancybox-thumbs.js?v=1.0.7"></script>
+<script type="text/javascript" src="fancybox/source/helpers/jquery.fancybox-media.js?v=1.0.6"></script>
 <script src="data/circlename.json"></script>
-<script src="data/circlemap.json"></script>
+<script src="data/web.json"></script>
+<script src="data/pixiv.json"></script>
 <script type="text/x-tmpl" id="tmpl-keymap">
 {% for (var i=0; i<o.keymap.length; i++) { %}
 <li class=""><a href="#" data-key="{%=o.keymap[i]%}">{%=o.keymap[i]%}</a></li>
@@ -67,7 +76,7 @@
   <div class="col-sm-6 col-md-3">
     <div class="thumbnail">
       {% if (o.avatar) { %}
-      <img class="img-rounded" src="{%=o.avatar%}" alt="{%=o.name%}">
+      <img class="img-rounded" src="images/placeholder.gif" alt="{%=o.name%}">
       {% } else { %}
       <img class="img-rounded" src="images/placeholder.gif" alt="{%=o.name%}">
       {% } %}
@@ -76,7 +85,7 @@
         <p>{%=o.position1%}-{%=o.position2%}-{%=o.position3%} / {%=o.penName%}</p>
         <p>
             {% if (o.web) { %}
-                <a href="{%=o.web%}" target="_blank" class="btn btn-primary" role="button">查看官网</a> 
+                <a href="{%=o.web%}" target="_blank" class="btn btn-primary fancybox fancybox.iframe" role="button">查看官网</a> 
             {% } else { %}
                 <a href="#" target="_blank" class="btn btn-default disabled" role="button">没有官网</a> 
             {% } %}
@@ -94,6 +103,13 @@ $(function(){
 		$(this).append(tmpl('tmpl-keymap', data));
 	});
 	$('[role="keymap"]').on('click', 'a', function(){
+		var $li = $(this).parent();
+		if($li.hasClass('active')) {
+			return;
+		}
+		$('[role="keymap"] > li.active').removeClass('active');
+		$li.addClass('active');
+		
 		var key = $(this).data('key');
         var circlelist = data[key];
 		var $container = $('#main').empty();
@@ -101,9 +117,12 @@ $(function(){
 		var $row = $container.find('.row');
 		for (var i=0; i<circlelist.length; i++) {
 			var circle = circlelist[i];
-			var meta = map[circle.name]
-			$row.append(tmpl('tmpl-circle', $.extend(circle,meta)));
+            var web = webData[circle.name];
+            var pixiv = pixivData[circle.name];
+			$row.append(tmpl('tmpl-circle', $.extend(circle, web, pixiv)));
 		}
+		
+		$('.fancybox').fancybox();
 	});
 });
 </script>
