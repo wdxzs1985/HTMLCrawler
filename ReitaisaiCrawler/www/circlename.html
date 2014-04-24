@@ -8,61 +8,102 @@
 <link rel="stylesheet" href="bootstrap-3.1.1-dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="bootstrap-3.1.1-dist/css/bootstrap-theme.min.css">
 <style>
+    body { padding-top: 70px;}
     h3 { height:2em; overflow: hidden; text-overflow: ellipsis;}
-    h3 > p { height: 1.5em; overflow: hidden; text-overflow: ellipsis;}
+    h3 + p { height: 3em; overflow: hidden; text-overflow: ellipsis;}
+    .thumbnail>img { height:90px !important;}
 </style>
 </head>
 <body>
-<nav class="navbar navbar-default navbar-static-top" role="navigation">
+<nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
   <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="circlename.html">例大祭11サークル</a>
+    </div>
+    <div class="collapse navbar-collapse " id="bs-example-navbar-collapse-1">
+      <ul class="nav navbar-nav">
+        <li class=""><a href="circlename.html">名前順</a></li>
+        <li class=""><a href="block123.html">東１２３</a></li>
+        <li class=""><a href="block456.html">東４５６</a></li>
+        <li class="dropdown hidden-lg hidden-md hidden-sm">
+          <a href="#" class="dropdown-toggle" data-toggle="dropdown">Dropdown <b class="caret"></b></a>
+          <ul class="dropdown-menu" role="keymap">
+          </ul>
+        </li>
+      </ul>
+    </div>
   </div>
 </nav>
 <div class="container">
-<ul id="keymap" class="nav nav-pills nav-justified">
+<ul class="nav nav-tabs nav-justified visible-sm visible-md visible-lg" role="keymap">
 </ul>
 <div id="main" class="container">
-
 </div>
 </div>
 <script src="jquery/jquery-2.1.0.min.js"></script>
 <script src="bootstrap-3.1.1-dist/js/bootstrap.min.js"></script>
 <script src="js/tmpl.min.js"></script>
 <script src="data/circlename.json"></script>
+<script src="data/circlemap.json"></script>
 <script type="text/x-tmpl" id="tmpl-keymap">
 {% for (var i=0; i<o.keymap.length; i++) { %}
 <li class=""><a href="#" data-key="{%=o.keymap[i]%}">{%=o.keymap[i]%}</a></li>
 {% } %}
 </script>
-<script type="text/x-tmpl" id="tmpl-circle">
+<script type="text/x-tmpl" id="tmpl-container">
 <div class="page-header">
     <h3>{%=o.key%}</h3>
 </div>
 <div class="row">
-{% for (var i=0; i<o.circle.length; i++) { %}
+</div>
+</script>
+<script type="text/x-tmpl" id="tmpl-circle">
   <div class="col-sm-6 col-md-3">
     <div class="thumbnail">
-      <img src="http://placehold.it/350x150" alt="{%=o.circle[i].circleName%}">
+      {% if (o.avatar) { %}
+      <img class="img-rounded" src="{%=o.avatar%}" alt="{%=o.name%}">
+      {% } else { %}
+      <img class="img-rounded" src="images/placeholder.gif" alt="{%=o.name%}">
+      {% } %}
       <div class="caption">
-        <h3>{%=o.circle[i].name%}</h3>
-        <p>{%=o.circle[i].position1%}-{%=o.circle[i].position2%}-{%=o.circle[i].position3%} / {%=o.circle[i].penName%}</p>
+        <h3>{%=o.name%}</h3>
+        <p>{%=o.position1%}-{%=o.position2%}-{%=o.position3%} / {%=o.penName%}</p>
         <p>
-          <a href="https://www.google.co.jp/#q={%=o.circle[i].circleName%}" target="_blank" class="btn btn-primary" role="button">google</a> 
-          <a href="#" class="btn btn-default" role="button">Button</a>
+            {% if (o.web) { %}
+                <a href="{%=o.web%}" target="_blank" class="btn btn-primary" role="button">查看官网</a> 
+            {% } else { %}
+                <a href="#" target="_blank" class="btn btn-default disabled" role="button">没有官网</a> 
+            {% } %}
+            {% if (o.pixiv) { %}
+                <a href="http://www.pixiv.net/member.php?id={%=o.pixiv%}" target="_blank" class="btn btn-info" role="button">P站</a> 
+            {% } %}
         </p>
       </div>
     </div>
   </div>
-{% } %}
-</div>
 </script>
 <script type="text/javascript">
 $(function(){
-	$('#keymap').append(tmpl('tmpl-keymap', data));
-	$('#keymap').on('click', 'a', function(){
+	$('[role="keymap"]').each(function(){
+		$(this).append(tmpl('tmpl-keymap', data));
+	});
+	$('[role="keymap"]').on('click', 'a', function(){
 		var key = $(this).data('key');
-		var circlelist = data[key];
-		$('#main').empty()
-		          .append(tmpl('tmpl-circle', {key:key,circle:circlelist}));
+        var circlelist = data[key];
+		var $container = $('#main').empty();
+		$container.append(tmpl('tmpl-container', {key:key}));
+		var $row = $container.find('.row');
+		for (var i=0; i<circlelist.length; i++) {
+			var circle = circlelist[i];
+			var meta = map[circle.name]
+			$row.append(tmpl('tmpl-circle', $.extend(circle,meta)));
+		}
 	});
 });
 </script>

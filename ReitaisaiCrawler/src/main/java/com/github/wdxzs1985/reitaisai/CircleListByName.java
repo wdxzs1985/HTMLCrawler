@@ -18,8 +18,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
-import com.github.wdxzs1985.html.Crawler;
-
 @Component
 public class CircleListByName implements CommandLineRunner {
 
@@ -41,8 +39,6 @@ public class CircleListByName implements CommandLineRunner {
     @Value("${CircleListByName..jsonfile:circlename.json}")
     private String jsonfile;
 
-    private final Crawler crawler = new Crawler();
-
     private final Log log = LogFactory.getLog(this.getClass());
 
     private final Pattern TABLE_PATTERN = Pattern.compile("<h3 id=\"(.)\">.</h3><table class=\"circlelist\">(.*?)</table>");
@@ -58,7 +54,7 @@ public class CircleListByName implements CommandLineRunner {
         File file = new File(this.htmlfile);
         String html = null;
         if (this.html) {
-            html = this.crawler.getHtml(this.url);
+            html = Application.getHtml(this.url);
             FileUtils.write(file, html);
         } else {
             html = FileUtils.readFileToString(file);
