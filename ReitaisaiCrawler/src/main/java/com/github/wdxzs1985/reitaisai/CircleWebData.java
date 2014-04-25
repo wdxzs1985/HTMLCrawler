@@ -66,6 +66,7 @@ public class CircleWebData implements CommandLineRunner {
             if (StringUtils.isNotBlank(web)) {
                 String newLine = null;
                 try {
+                    Thread.sleep(1000);
                     String html = Application.getHtml(web);
                     html = StringEscapeUtils.unescapeHtml4(html);
                     html = Application.replaceReturn(html);
@@ -88,11 +89,10 @@ public class CircleWebData implements CommandLineRunner {
     }
 
     private String findSoundCloud(String html) throws Exception {
-        Thread.sleep(2000);
         Matcher matcher = SOUNDCLOUD_PATTERN.matcher(html);
         if (matcher.find()) {
             String soundCloud = matcher.group(1);
-            this.log.info(html);
+            this.log.info(soundCloud);
             return soundCloud;
         } else {
         }
