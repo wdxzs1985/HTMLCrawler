@@ -163,13 +163,13 @@ public class CommonHttpClient {
             if (this.log.isDebugEnabled()) {
                 this.log.debug(result);
             }
-            // Consume response content
-            EntityUtils.consume(entity);
             return result;
         } catch (final ParseException e) {
             throw new RuntimeException(e);
         } catch (final IOException e) {
             throw new RuntimeException(e);
+        } finally {
+            EntityUtils.consumeQuietly(entity);
         }
     }
 
@@ -182,13 +182,13 @@ public class CommonHttpClient {
             if (this.log.isDebugEnabled()) {
                 this.log.debug(result);
             }
-            // Consume response content
-            EntityUtils.consume(entity);
             return result;
         } catch (final ParseException e) {
             throw new RuntimeException(e);
         } catch (final IOException e) {
             throw new RuntimeException(e);
+        } finally {
+            EntityUtils.consumeQuietly(entity);
         }
     }
 
@@ -200,6 +200,20 @@ public class CommonHttpClient {
     public JSONObject postForJSON(final String url, final List<BasicNameValuePair> nvps) {
         final String html = this.postForHtml(url, nvps);
         return JSONObject.fromObject(html);
+    }
+
+    public byte[] getForBytes(final String url) {
+        HttpResponse response = this.get(url);
+        final HttpEntity entity = response.getEntity();
+        byte[] result;
+        try {
+            result = EntityUtils.toByteArray(entity);
+            return result;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } finally {
+            EntityUtils.consumeQuietly(entity);
+        }
     }
 
     public String findCookie(final String cookieName) {
