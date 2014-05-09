@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.http.HttpResponse;
+import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -60,5 +61,11 @@ public class Application {
 
     public static final String replaceReturn(String text) {
         return text.replaceAll("\\r\\n[\\t\\s]*|\\r[\\t\\s]*|\\n[\\t\\s]*", "");
+    }
+
+    public static String post(String url, List<BasicNameValuePair> nvps) {
+        String html = HTTP.postForHtml(url, nvps);
+        HTTP.setReferer(url);
+        return html;
     }
 }
