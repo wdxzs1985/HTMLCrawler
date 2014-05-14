@@ -1,5 +1,6 @@
 package com.github.wdxzs1985.pixiv;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,9 +27,14 @@ public class Application {
         SpringApplication.run(Application.class, args);
     }
 
+    public static void loadCookie(String path) {
+        HTTP.loadCookie(new File(path));
+    }
+
     public static final String getHtml(String url) {
         String html = HTTP.getForHtml(url);
         HTTP.setReferer(url);
+        HTTP.saveCookie();
         return html;
     }
 
@@ -66,6 +72,7 @@ public class Application {
     public static String post(String url, List<BasicNameValuePair> nvps) {
         String html = HTTP.postForHtml(url, nvps);
         HTTP.setReferer(url);
+        HTTP.saveCookie();
         return html;
     }
 }

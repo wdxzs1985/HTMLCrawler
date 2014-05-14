@@ -30,6 +30,7 @@ public class PixivUser extends PixivBase implements CommandLineRunner {
 
         this.findName(html);
         this.findIllust(html);
+
     }
 
     private String findName(String html) {
@@ -48,9 +49,6 @@ public class PixivUser extends PixivBase implements CommandLineRunner {
         while (matcher.find()) {
             String illustId = matcher.group(1);
             this.getIllust(illustId);
-            // if (this.login) {
-            // this.getIllustLarge(illustId);
-            // }
         }
     }
 
