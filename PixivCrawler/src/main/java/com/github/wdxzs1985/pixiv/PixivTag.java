@@ -6,9 +6,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.stereotype.Component;
 
-@Component
 public class PixivTag extends PixivBase implements CommandLineRunner {
 
     private final static Pattern IMAGEITEM_PATTERN = Pattern.compile("<li class=\"image-item\"><a href=\"/member_illust.php\\?mode=medium&illust_id=(\\d+)\" class=\"work\"><img src=\"http://i[\\d]\\.pixiv\\.net/img-inf/img/([\\d]{4})/([\\d]{2})/([\\d]{2})/([\\d]{2})/([\\d]{2})/([\\d]{2})/[\\d]+_s\\.(jpe?g|png|gif)\" class=\"_thumbnail\"><h1 class=\"title\" title=\"(.*?)\">.*?</h1></a><a href=\"/member_illust\\.php\\?id=\\d+\" class=\"user ui-profile-popup\" title=\".*?\" data-user_id=\"(\\d+)\" data-user_name=\"(.*?)\">.*?</a></li>");

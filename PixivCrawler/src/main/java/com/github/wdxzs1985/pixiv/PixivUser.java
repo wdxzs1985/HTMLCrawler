@@ -6,11 +6,14 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.stereotype.Component;
 
+@Component
 public class PixivUser extends PixivBase implements CommandLineRunner {
 
     private final static Pattern NAME_PATTERN = Pattern.compile("<h1 class=\"user\">(.*?)</h1>");
-    private final static Pattern ILLUST_PATTERN = Pattern.compile("<a href=\"/member_illust.php\\?mode=medium&illust_id=(\\d+)\" class=\"work\">");
+    private final static Pattern ILLUST_PATTERN = Pattern.compile("<a href=\"/member_illust.php\\?mode=medium&illust_id=(\\d+)\" class=\"work\"><img src=\"(.*?)\" class=\"_thumbnail\"><h1 class=\"title\" title=\"(.*?)\">.*?</h1>");
+    private final static Pattern MEMBERILLUST_NEXT_PATTERN = Pattern.compile("<a href=\"\\?id=[\\d]+&p=([\\d]+)\" rel=\"next\" class=\"_button\" title=\"次へ\">");
 
     @Value("${pixiv}")
     private String pixiv;
@@ -22,15 +25,18 @@ public class PixivUser extends PixivBase implements CommandLineRunner {
     }
 
     private void getPixivUser(String pixiv) {
-        String url = String.format("http://www.pixiv.net/member_illust.php?id=%s",
-                                   pixiv);
-        String html = Application.getHtml(url);
-        html = StringEscapeUtils.unescapeHtml4(html);
-        html = Application.replaceReturn(html);
+        int p = 1;
+        while (p > 0) {
+            String url = String.format("http://www.pixiv.net/member_illust.php?id=%s&p=%d",
+                                       pixiv,
+                                       p);
+            String html = Application.getHtml(url);
+            html = StringEscapeUtils.unescapeHtml4(html);
+            html = Application.replaceReturn(html);
 
-        this.findName(html);
-        this.findIllust(html);
-
+            this.findIllust(html);
+            p = this.findNextPage(html);
+        }
     }
 
     private String findName(String html) {
@@ -48,8 +54,21 @@ public class PixivUser extends PixivBase implements CommandLineRunner {
         matcher = ILLUST_PATTERN.matcher(html);
         while (matcher.find()) {
             String illustId = matcher.group(1);
-            this.getIllust(illustId);
+            String thumbnail = matcher.group(2);
+            String title = matcher.group(3);
+            this.log.info(illustId);
+            this.log.info(thumbnail);
+            this.log.info(title);
+            // this.getIllust(illustId);
         }
     }
 
+    private int findNextPage(String html) {
+        Matcher matcher = MEMBERILLUST_NEXT_PATTERN.matcher(html);
+        if (matcher.find()) {
+            String nextPage = matcher.group(1);
+            return Integer.valueOf(nextPage);
+        }
+        return 0;
+    }
 }
