@@ -4,30 +4,39 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringEscapeUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.stereotype.Component;
 
+@Component
 public class PixivBookmark extends PixivBase implements CommandLineRunner {
 
     private final static Pattern USERDATA_PATTERN = Pattern.compile("<div class=\"userdata\"><a href=\"member.php\\?id=[\\d]+\" class=\"ui-profile-popup\" data-user_id=\"(\\d+)\" data-profile_img=\"(.*?)\" data-user_name=\"(.*?)\">.*?</a>(.*?)<br><span> </span></div>");
     private final static Pattern BOOKMARK_NEXT_PATTERN = Pattern.compile("<a href=\"bookmark.php\\?type=user&rest=show&p=([\\d]+)\" class=\"button\" rel=\"next\">");
 
+    @Value("${PixivBookmark.run:false}")
+    private boolean isRun;
+
     @Override
-    public void run(String... arg0) throws Exception {
-        this.login = this.doLogin();
-        boolean isLast = false;
-        int p = 1;
-        while (!isLast) {
-            String url = "http://www.pixiv.net/bookmark.php?type=user&rest=show&p=" + p;
-            String html = Application.getHtml(url);
-            html = StringEscapeUtils.unescapeHtml4(html);
-            html = Application.replaceReturn(html);
+    public void run(String... args) throws Exception {
+        if (this.isRun) {
 
-            this.findUser(html);
-            isLast = !this.findNextPage(html);
+            this.login = this.doLogin();
+            boolean isLast = false;
+            int p = 1;
+            while (!isLast) {
+                String url = "http://www.pixiv.net/bookmark.php?type=user&rest=show&p=" + p;
+                String html = this.getHtml(url);
+                html = StringEscapeUtils.unescapeHtml4(html);
+                html = this.replaceReturn(html);
 
-            p++;
+                this.findUser(html);
+
+                isLast = !this.findNextPage(html);
+
+                p++;
+            }
         }
-
     }
 
     private void findUser(String html) {
@@ -41,6 +50,8 @@ public class PixivBookmark extends PixivBase implements CommandLineRunner {
             this.log.info(profileImg);
             this.log.info(userName);
             this.log.info(description);
+
+            this.getPixivUser(userId);
         }
     }
 

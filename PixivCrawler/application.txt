@@ -1,0 +1,15 @@
+userId=
+pass=
+cookiePath=tmp/pixiv.cookie
+imageDir=pixiv
+
+PixivBookmark.run=false
+
+PixivIllust.run=false
+PixivIllust.illustId=17184386
+
+PixivTag.run=false
+PixivTag.word=\u4f8b\u5927\u796d11
+
+PixivUser.run=false
+PixivUser.userId=2526
