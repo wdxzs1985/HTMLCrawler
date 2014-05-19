@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+  xmlns:layout="http://www.ultraq.net.nz/web/thymeleaf/layout"
+  layout:decorator="layout">
+  <head>
+    <title>Messages : Search</title>
+  </head>
+  <body>
+    <div class="page-header" layout:fragment="header">
+        <h1 >ILLUST</h1>
+    </div>
+    <div layout:fragment="content" class="container">
+        <table class="table table-bordered">
+          <tr>
+            <th>id</th>
+            <th>title</th>
+            <th>caption</th>
+          </tr>
+          <tr th:each="illust : ${illustList}">
+            <td th:text="${illust.id}">2.41</td>
+            <td th:text="${illust.title}">Onions</td>
+            <td th:text="${illust.caption}">Onions</td>
+          </tr>
+        </table>
+    </div>
+  </body>
+</html>

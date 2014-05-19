@@ -23,7 +23,7 @@
     <root level="INFO">
         <appender-ref ref="CONSOLE" />
     </root>
-    <logger name="com.github.wdxzs1985.pixiv" level="DEBUG">
+    <logger name="com.github.wdxzs1985" level="INFO">
         <appender-ref ref="FILE" />
     </logger>
 </configuration>

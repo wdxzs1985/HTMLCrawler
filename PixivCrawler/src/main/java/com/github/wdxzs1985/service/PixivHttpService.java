@@ -1,9 +1,11 @@
-package com.github.wdxzs1985.pixiv;
+package com.github.wdxzs1985.service;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -16,10 +18,14 @@ import org.apache.http.HttpResponse;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 
+import com.github.wdxzs1985.domain.PixivIllust;
+import com.github.wdxzs1985.domain.PixivUser;
 import com.github.wdxzs1985.html.CommonHttpClient;
 
-public abstract class PixivBase {
+@Service
+public class PixivHttpService {
 
     private final static Pattern LOGIN_PATTERN = Pattern.compile("<input type=\"hidden\" name=\"mode\" value=\"login\">");
 
@@ -31,10 +37,12 @@ public abstract class PixivBase {
     private final static Pattern BIG_IMAGE_PATTERN = Pattern.compile("(http://i[\\d]\\.pixiv\\.net/img[0-9]+/img/[^/]*?/\\d+.(png|jpe?g|gif))");
     private final static Pattern MANGA_IMAGE_PATTERN = Pattern.compile("data-src=\"(http://i[\\d]\\.pixiv\\.net/img[0-9]+/img/[^/]*?/\\d+_p[\\d]+.(png|jpe?g|gif))\"");
 
+    private final static Pattern MEMBERNAME_PATTERN = Pattern.compile("<a href=\"/member.php\\?id=([0-9]+)\"><h1 class=\"name\">(.*?)</h1></a>");
     private final static Pattern MEMBERILLUST_PATTERN = Pattern.compile("<a href=\"/member_illust.php\\?mode=medium&illust_id=(\\d+)\" class=\"work\"><img src=\"(.*?)\" class=\"_thumbnail\"><h1 class=\"title\" title=\"(.*?)\">.*?</h1>");
     private final static Pattern MEMBERILLUST_NEXT_PATTERN = Pattern.compile("<a href=\"\\?id=[\\d]+&p=([\\d]+)\" rel=\"next\" class=\"_button\" title=\"次へ\">");
 
     public static final String USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.16 Safari/537.36";
+    public static final int EOF = -1;
 
     private final CommonHttpClient HTTP = new CommonHttpClient(USER_AGENT);
 
@@ -91,19 +99,19 @@ public abstract class PixivBase {
 
     protected boolean login = false;
 
-    @Value("${userId}")
+    @Value("${pixiv.userId}")
     private String userId;
 
-    @Value("${pass}")
+    @Value("${pixiv.password}")
     private String pass;
 
-    @Value("${cookiePath}")
+    @Value("${pixiv.cookiePath}")
     private String cookiePath;
 
-    @Value("${imageDir}")
+    @Value("${pixiv.imageDir}")
     private String imageDir;
 
-    protected boolean doLogin() {
+    public boolean doLogin() {
         if (!this.checkLogin()) {
             String path = "http://www.pixiv.net/login.php";
             List<BasicNameValuePair> nvps = new ArrayList<BasicNameValuePair>();
@@ -127,80 +135,54 @@ public abstract class PixivBase {
         String path = "http://www.pixiv.net/mypage.php";
         String html = this.getHtml(path);
         if (LOGIN_PATTERN.matcher(html).find()) {
-            return false;
-        }
-        return true;
-    }
-
-    protected void getIllust(String illustId) {
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-        }
-        String url = String.format("http://www.pixiv.net/member_illust.php?mode=medium&illust_id=%s",
-                                   illustId);
-        String html = this.getHtml(url);
-        html = StringEscapeUtils.unescapeHtml4(html);
-        html = this.replaceReturn(html);
-
-        this.findWorkInfo(html);
-        this.findIllustTags(html);
-
-        String mode = this.findIllustMode(html);
-        if ("big".equals(mode)) {
-            this.getIllustBig(illustId);
-        } else if ("manga".equals(mode)) {
-            this.getIllustManga(illustId);
+            this.login = false;
         } else {
-            this.log.debug(html);
+            this.login = true;
         }
+        return this.login;
     }
 
-    private void getIllustBig(String illustId) {
+    public void getIllust(PixivIllust illustBean) {
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
         }
-        String url = String.format("http://www.pixiv.net/member_illust.php?mode=big&illust_id=%s",
-                                   illustId);
+        String url = String.format("http://www.pixiv.net/member_illust.php?mode=medium&illust_id=%d",
+                                   illustBean.getId());
         String html = this.getHtml(url);
         html = StringEscapeUtils.unescapeHtml4(html);
         html = this.replaceReturn(html);
 
-        this.log.debug(html);
+        this.findWorkInfo(illustBean, html);
+        this.findIllustTags(illustBean, html);
+
+        this.findIllustMode(illustBean, html);
+
+    }
+
+    public void getIllustBig(PixivIllust illustBean) {
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+        }
+        String url = String.format("http://www.pixiv.net/member_illust.php?mode=big&illust_id=%d",
+                                   illustBean.getId());
+        String html = this.getHtml(url);
+        html = StringEscapeUtils.unescapeHtml4(html);
+        html = this.replaceReturn(html);
 
         Matcher matcher = BIG_IMAGE_PATTERN.matcher(html);
         if (matcher.find()) {
             String imageUrl = matcher.group(1);
-            this.download(imageUrl);
+            this.downloadBig(illustBean, imageUrl);
         }
     }
 
-    private void getIllustManga(String illustId) {
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-        }
-        String url = String.format("http://www.pixiv.net/member_illust.php?mode=manga&illust_id=%s",
-                                   illustId);
-        String html = this.getHtml(url);
-        html = StringEscapeUtils.unescapeHtml4(html);
-        html = this.replaceReturn(html);
-
-        this.log.debug(html);
-
-        Matcher matcher = MANGA_IMAGE_PATTERN.matcher(html);
-        while (matcher.find()) {
-            String imageUrl = matcher.group(1);
-            this.download(imageUrl);
-        }
-    }
-
-    private void download(String imageUrl) {
+    public void downloadBig(PixivIllust illustBean, String imageUrl) {
         try {
             String[] fragments = StringUtils.split(imageUrl, "/");
-            String fileName = String.format("%s/%s",
-                                            fragments[fragments.length - 2],
+            String fileName = String.format("%d/%s",
+                                            illustBean.getId(),
                                             fragments[fragments.length - 1]);
             File file = new File(this.imageDir, fileName);
             byte[] data = this.HTTP.getForBytes(imageUrl);
@@ -210,7 +192,40 @@ public abstract class PixivBase {
         }
     }
 
-    protected void findWorkInfo(String html) {
+    public void getIllustManga(PixivIllust illustBean) {
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+        }
+        String url = String.format("http://www.pixiv.net/member_illust.php?mode=manga&illust_id=%d",
+                                   illustBean.getId());
+        String html = this.getHtml(url);
+        html = StringEscapeUtils.unescapeHtml4(html);
+        html = this.replaceReturn(html);
+
+        Matcher matcher = MANGA_IMAGE_PATTERN.matcher(html);
+        while (matcher.find()) {
+            String imageUrl = matcher.group(1);
+            this.downloadManga(illustBean, imageUrl);
+        }
+    }
+
+    public void downloadManga(PixivIllust illustBean, String imageUrl) {
+        try {
+            String[] fragments = StringUtils.split(imageUrl, "/");
+            String fileName = String.format("%d/%d/%s",
+                                            illustBean.getUserId(),
+                                            illustBean.getId(),
+                                            fragments[fragments.length - 1]);
+            File file = new File(this.imageDir, fileName);
+            byte[] data = this.HTTP.getForBytes(imageUrl);
+            FileUtils.writeByteArrayToFile(file, data);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void findWorkInfo(PixivIllust illustBean, String html) {
         Matcher matcher = WORKINFO_PATTERN.matcher(html);
         if (matcher.find()) {
 
@@ -244,8 +259,9 @@ public abstract class PixivBase {
             this.log.info(String.format("original: %s",
                                         StringUtils.isNotBlank(original) ? "yes"
                                                 : "no"));
-            this.log.info(String.format("title: %s", title));
-            this.log.info(String.format("caption: %s", caption));
+
+            illustBean.setTitle(title);
+            illustBean.setCaption(caption);
         }
     }
 
@@ -259,16 +275,22 @@ public abstract class PixivBase {
         return items;
     }
 
-    private String findIllustMode(String html) {
-        String mode = null;
+    private void findIllustMode(PixivIllust illustBean, String html) {
         Matcher matcher = ILLUST_MODE_PATTERN.matcher(html);
         while (matcher.find()) {
-            mode = matcher.group(1);
+            String mode = matcher.group(1);
+            illustBean.setMode(mode);
+            if ("big".equals(mode)) {
+                this.getIllustBig(illustBean);
+            } else if ("manga".equals(mode)) {
+                this.getIllustManga(illustBean);
+            } else {
+                this.log.debug(html);
+            }
         }
-        return mode;
     }
 
-    private void findIllustTags(String html) {
+    public void findIllustTags(PixivIllust illustBean, String html) {
         Matcher matcher = null;
         matcher = ILLUST_TAG_PATTERN.matcher(html);
         while (matcher.find()) {
@@ -277,37 +299,43 @@ public abstract class PixivBase {
         }
     }
 
-    public void getPixivUser(String userId) {
-        int p = 1;
-        while (p > 0) {
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-            }
-            String url = String.format("http://www.pixiv.net/member_illust.php?id=%s&p=%d",
-                                       userId,
-                                       p);
-            String html = this.getHtml(url);
-            html = StringEscapeUtils.unescapeHtml4(html);
-            html = this.replaceReturn(html);
-
-            this.findMemberIllust(html);
-            p = this.findNextPage(MEMBERILLUST_NEXT_PATTERN, html);
+    public Map<String, Object> getPixivUserIllust(Long userId, int page) {
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
         }
+        String url = String.format("http://www.pixiv.net/member_illust.php?id=%d&p=%d",
+                                   userId,
+                                   page);
+        String html = this.getHtml(url);
+        html = StringEscapeUtils.unescapeHtml4(html);
+        html = this.replaceReturn(html);
+
+        List<PixivIllust> illustList = this.findMemberIllust(userId, html);
+        int p = this.findNextPage(MEMBERILLUST_NEXT_PATTERN, html);
+
+        Map<String, Object> model = new HashMap<String, Object>();
+        model.put("illustList", illustList);
+        model.put("nextPage", p);
+
+        return model;
     }
 
-    private void findMemberIllust(String html) {
+    private List<PixivIllust> findMemberIllust(Long userId, String html) {
+        List<PixivIllust> illustList = new ArrayList<PixivIllust>();
         Matcher matcher = null;
         matcher = MEMBERILLUST_PATTERN.matcher(html);
         while (matcher.find()) {
-            String illustId = matcher.group(1);
-            String thumbnail = matcher.group(2);
-            String title = matcher.group(3);
-            this.log.info(illustId);
-            this.log.info(thumbnail);
-            this.log.info(title);
-            this.getIllust(illustId);
+            PixivIllust illustBean = new PixivIllust();
+            illustBean.setUserId(userId);
+            illustBean.setId(Long.valueOf(matcher.group(1)));
+            illustBean.setTitle(matcher.group(3));
+
+            this.getIllust(illustBean);
+
+            illustList.add(illustBean);
         }
+        return illustList;
     }
 
     private int findNextPage(Pattern pattern, String html) {
@@ -316,6 +344,32 @@ public abstract class PixivBase {
             String nextPage = matcher.group(1);
             return Integer.valueOf(nextPage);
         }
-        return 0;
+        return EOF;
+    }
+
+    public PixivUser getPixivUser(Long userId) {
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+        }
+        String url = String.format("http://www.pixiv.net/member.php?id=%d",
+                                   userId);
+        String html = this.getHtml(url);
+        html = StringEscapeUtils.unescapeHtml4(html);
+        html = this.replaceReturn(html);
+
+        PixivUser user = this.findUser(html);
+        return user;
+    }
+
+    private PixivUser findUser(String html) {
+        Matcher matcher = MEMBERNAME_PATTERN.matcher(html);
+        if (matcher.find()) {
+            PixivUser user = new PixivUser();
+            user.setId(Long.valueOf(matcher.group(1)));
+            user.setName(matcher.group(2));
+            return user;
+        }
+        return null;
     }
 }

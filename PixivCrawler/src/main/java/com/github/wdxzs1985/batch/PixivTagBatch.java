@@ -1,31 +1,30 @@
-package com.github.wdxzs1985.pixiv;
+package com.github.wdxzs1985.batch;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringEscapeUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.stereotype.Component;
 
-@Component
-public class PixivTag extends PixivBase implements CommandLineRunner {
+import com.github.wdxzs1985.service.PixivHttpService;
+
+public class PixivTagBatch implements Runnable {
 
     private final static Pattern IMAGEITEM_PATTERN = Pattern.compile("<li class=\"image-item\"><a href=\"/member_illust.php\\?mode=medium&illust_id=(\\d+)\" class=\"work\"><img src=\"(.*?)\" class=\"_thumbnail\"><h1 class=\"title\" title=\"(.*?)\">.*?</h1></a><a href=\"/member_illust\\.php\\?id=(\\d+)\" class=\"user ui-profile-popup\" title=\".*?\" data-user_id=\"(\\d+)\" data-user_name=\"(.*?)\">.*?</a></li>");
     private final static Pattern NEXT_PATTERN = Pattern.compile("<a href=\"\\?word=[%A-F0-9]+&s_mode=s_tag_full&p=(\\d+)\" rel=\"next\" class=\"_button\" title=\"次へ\">");
 
-    @Value("${PixivTag.run:false}")
-    private boolean isRun;
-
     @Value("${PixivTag.word}")
     private String word;
+
+    @Autowired
+    private final PixivHttpService service = null;
 
     private int page = 1;
 
     @Override
-    public void run(String... args) throws Exception {
-        if (this.isRun) {
-            this.login = this.doLogin();
+    public void run() {
+        if (this.service.doLogin()) {
             this.page = 1;
 
             if (this.page > 0) {
@@ -38,9 +37,9 @@ public class PixivTag extends PixivBase implements CommandLineRunner {
         String url = String.format("http://www.pixiv.net/search.php?s_mode=s_tag_full&word=%s&p=%d",
                                    word,
                                    page);
-        String html = this.getHtml(url);
+        String html = this.service.getHtml(url);
         html = StringEscapeUtils.unescapeHtml4(html);
-        html = this.replaceReturn(html);
+        html = this.service.replaceReturn(html);
         this.find(html);
         this.findPage(html);
     }
@@ -49,7 +48,7 @@ public class PixivTag extends PixivBase implements CommandLineRunner {
         Matcher matcher = IMAGEITEM_PATTERN.matcher(html);
         while (matcher.find()) {
             String illustId = matcher.group(1);
-            this.getIllust(illustId);
+            // this.service.getIllust(illustId);
         }
     }
 
