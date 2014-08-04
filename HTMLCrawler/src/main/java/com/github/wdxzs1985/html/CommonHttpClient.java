@@ -42,7 +42,6 @@ import org.apache.http.util.EntityUtils;
 
 public class CommonHttpClient {
 
-    private static final String USER_AGENT = "Mozilla/5.0 (iPhone; CPU iPhone OS 6_0 like Mac OS X) AppleWebKit/536.26 (KHTML, like Gecko) Version/6.0 Mobile/10A5376e Safari/8536.25";
     private static final int TIMEOUT = 20000;
     private static final String ENCODING = "UTF-8";
 
@@ -54,11 +53,7 @@ public class CommonHttpClient {
 
     private File cookieFile = null;
 
-    public CommonHttpClient() {
-        this(USER_AGENT);
-    }
-
-    public CommonHttpClient(String userAgent) {
+    public CommonHttpClient(final String userAgent) {
         final PoolingHttpClientConnectionManager connManager = new PoolingHttpClientConnectionManager();
         // Increase max total connection to 200
         connManager.setMaxTotal(200);
@@ -78,8 +73,6 @@ public class CommonHttpClient {
         clientBuilder.setUserAgent(userAgent);
         clientBuilder.setKeepAliveStrategy(DefaultConnectionKeepAliveStrategy.INSTANCE);
         final Collection<Header> defaultHeaders = new LinkedList<Header>();
-        defaultHeaders.add(new BasicHeader("Accept",
-                                           "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"));
         defaultHeaders.add(new BasicHeader("Accept-Charset", ENCODING));
         defaultHeaders.add(new BasicHeader("Accept-Encoding", "gzip, deflate"));
         defaultHeaders.add(new BasicHeader("Accept-Language", "ja"));
@@ -90,7 +83,7 @@ public class CommonHttpClient {
         this.client = clientBuilder.build();
     }
 
-    public HttpResponse get(final String url) {
+    public HttpResponse get(final String url, final boolean isJson) {
         if (this.log.isInfoEnabled()) {
             this.log.info(String.format("[%4s] %s", "GET", url));
         }
@@ -101,7 +94,7 @@ public class CommonHttpClient {
                                                                 .setConnectionRequestTimeout(CommonHttpClient.TIMEOUT)
                                                                 .build();
         httpget.setConfig(defaultRequestConfig);
-        this.initHttpHeader(httpget);
+        this.initHttpHeader(httpget, isJson);
 
         final HttpClientContext localContext = new HttpClientContext();
         // Bind custom cookie store to the local context
@@ -119,7 +112,9 @@ public class CommonHttpClient {
         }
     }
 
-    public HttpResponse post(final String url, final List<? extends NameValuePair> nvps) {
+    public HttpResponse post(final String url,
+                             final List<? extends NameValuePair> nvps,
+                             final boolean isJson) {
         if (this.log.isInfoEnabled()) {
             this.log.info(String.format("[%4s] %s", "POST", url));
             for (final NameValuePair nvp : nvps) {
@@ -135,7 +130,7 @@ public class CommonHttpClient {
                                                                 .setConnectionRequestTimeout(CommonHttpClient.TIMEOUT)
                                                                 .build();
         httppost.setConfig(defaultRequestConfig);
-        this.initHttpHeader(httppost);
+        this.initHttpHeader(httppost, isJson);
 
         final HttpClientContext localContext = new HttpClientContext();
         // Bind custom cookie store to the local context
@@ -155,7 +150,7 @@ public class CommonHttpClient {
 
     public String getForHtml(final String url) {
         // Pass local context as a parameter
-        final HttpResponse response = this.get(url);
+        final HttpResponse response = this.get(url, false);
         final HttpEntity entity = response.getEntity();
         String result = null;
         try {
@@ -173,8 +168,9 @@ public class CommonHttpClient {
         }
     }
 
-    public String postForHtml(final String url, final List<? extends NameValuePair> nvps) {
-        final HttpResponse response = this.post(url, nvps);
+    public String postForHtml(final String url,
+                              final List<? extends NameValuePair> nvps) {
+        final HttpResponse response = this.post(url, nvps, false);
         final HttpEntity entity = response.getEntity();
         String result;
         try {
@@ -193,23 +189,52 @@ public class CommonHttpClient {
     }
 
     public JSONObject getForJSON(final String url) {
-        final String html = this.getForHtml(url);
-        return JSONObject.fromObject(html);
+        final HttpResponse response = this.get(url, true);
+        final HttpEntity entity = response.getEntity();
+        String result = null;
+        try {
+            result = this.entityToString(entity);
+            if (this.log.isDebugEnabled()) {
+                this.log.debug(result);
+            }
+            return JSONObject.fromObject(result);
+        } catch (final ParseException e) {
+            throw new RuntimeException(e);
+        } catch (final IOException e) {
+            throw new RuntimeException(e);
+        } finally {
+            EntityUtils.consumeQuietly(entity);
+        }
     }
 
-    public JSONObject postForJSON(final String url, final List<BasicNameValuePair> nvps) {
-        final String html = this.postForHtml(url, nvps);
-        return JSONObject.fromObject(html);
+    public JSONObject postForJSON(final String url,
+                                  final List<BasicNameValuePair> nvps) {
+        final HttpResponse response = this.post(url, nvps, true);
+        final HttpEntity entity = response.getEntity();
+        String result;
+        try {
+            result = this.entityToString(entity);
+            if (this.log.isDebugEnabled()) {
+                this.log.debug(result);
+            }
+            return JSONObject.fromObject(result);
+        } catch (final ParseException e) {
+            throw new RuntimeException(e);
+        } catch (final IOException e) {
+            throw new RuntimeException(e);
+        } finally {
+            EntityUtils.consumeQuietly(entity);
+        }
     }
 
     public byte[] getForBytes(final String url) {
-        HttpResponse response = this.get(url);
+        final HttpResponse response = this.get(url, false);
         final HttpEntity entity = response.getEntity();
         byte[] result;
         try {
             result = EntityUtils.toByteArray(entity);
             return result;
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new RuntimeException(e);
         } finally {
             EntityUtils.consumeQuietly(entity);
@@ -226,16 +251,25 @@ public class CommonHttpClient {
         return null;
     }
 
-    protected void initHttpHeader(final HttpMessage httpMessage) {
+    protected void initHttpHeader(final HttpMessage httpMessage,
+                                  final boolean isJson) {
         if (StringUtils.isNotBlank(this.referer)) {
             httpMessage.addHeader("Referer", this.referer);
         }
         if (StringUtils.isNotBlank(this.getAuthorization())) {
             httpMessage.addHeader("Authorization", this.authorization);
         }
+        if (isJson) {
+            httpMessage.addHeader(new BasicHeader("Accept",
+                                                  "application/json, text/javascript, */*; q=0.01"));
+        } else {
+            httpMessage.addHeader(new BasicHeader("Accept",
+                                                  "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"));
+        }
     }
 
-    private String entityToString(final HttpEntity entity) throws ParseException, IOException {
+    private String entityToString(final HttpEntity entity) throws ParseException,
+                                                          IOException {
         String result = null;
         if (this.isGzip(entity)) {
             result = EntityUtils.toString(new GzipDecompressingEntity(entity));

@@ -4,17 +4,22 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>com.github.wdxzs1985</groupId>
-	<artifactId>HTMLCrawler</artifactId>
+	<artifactId>html-circles</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 
-	<name>demo</name>
+	<name>circles</name>
 	<description>A html downloader</description>
 
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>1.1.4.RELEASE</version>
+    </parent>
+    
 	<dependencies>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
-            <version>4.3.2</version>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>
@@ -32,12 +37,18 @@
             <version>2.4</version>
             <classifier>jdk15</classifier>
         </dependency>
+        <dependency>
+        	<groupId>org.springframework.boot</groupId>
+        	<artifactId>spring-boot-starter</artifactId>
+        </dependency>
 	</dependencies>
 
-	<properties>
-		<start-class>com.github.wdxzs1985.html.Application</start-class>
-		<java.version>1.7</java.version>
-	</properties>
+    <properties>
+        <start-class>info.tongrenlu.Application</start-class>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <java.version>1.7</java.version>
+    </properties>
 
 	<build>
 		<plugins>
